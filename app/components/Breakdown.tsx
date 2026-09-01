@@ -26,6 +26,15 @@ interface BreakdownProps {
   /** Overrides the mode's base score; factor values rescale to stay consistent. */
   score?: number;
   updatedAt?: string; // e.g. "6:04 pm"
+  observations?: {
+    highCloudCover: number;
+    lowCloudCover: number;
+    aerosolOpticalDepth: number;
+    relativeHumidity: number;
+    hrrr: { highCloudCover: number; lowCloudCover: number; relativeHumidity: number };
+    nam: { highCloudCover: number; lowCloudCover: number; relativeHumidity: number };
+  };
+  modelScores?: { hrrr: number; nam: number };
 }
 
 const MODES: Record<
@@ -61,7 +70,7 @@ const WHYS = [
 
 const TILTS = ["-1.2deg", "0.8deg", "-0.6deg", "1.1deg"];
 const XS = [8, 220, 432, 644];
-const YS = [146, 258, 152, 260];
+const YS = [172, 284, 178, 286];
 const LEADERS = [
   { d: "M 190,80 C 162,98 196,112 162,126 C 138,135 118,131 100,141", color: "#ffd166" },
   { d: "M 350,80 C 322,112 352,142 316,174 C 294,197 302,225 289,248", color: "#ffb88c" },
@@ -81,8 +90,34 @@ const MUTE = "#8f7fb8";
 // High clouds use a peaked response: full credit at ≈45% cover, zero at overcast.
 const hiT = (v: number) => Math.max(0, 1 - Math.abs(v - 0.45) / 0.55);
 
-function computeFactors(mode: Mode, score: number) {
+function computeFactors(mode: Mode, score: number, observations?: BreakdownProps["observations"]) {
   const d = MODES[mode];
+  if (observations) {
+    const rawValues = [
+      observations.highCloudCover / 100,
+      observations.lowCloudCover / 100,
+      observations.aerosolOpticalDepth,
+      observations.relativeHumidity / 100,
+    ];
+    const terms = rawValues.map((value, index) =>
+      index === 2 ? Math.max(0, 1 - 2 * value) : index === 0 ? hiT(value) : 1 - value
+    );
+    const fmtAod = (x: number) => x.toFixed(2).replace(/^0/, "");
+    return d.factors.map((f, i) => {
+      const raw = rawValues[i];
+      const contrib = Math.round(f.weight * terms[i]);
+      return {
+        ...f,
+        value: f.kind === "aod" ? `AOD ${fmtAod(raw)}` : `${Math.round(raw * 100)}%`,
+        models: i === 2
+          ? "shared atmospheric forecast"
+          : `alpha ${Math.round(i === 0 ? observations.hrrr.highCloudCover : i === 1 ? observations.hrrr.lowCloudCover : observations.hrrr.relativeHumidity)}% · beta ${Math.round(i === 0 ? observations.nam.highCloudCover : i === 1 ? observations.nam.lowCloudCover : observations.nam.relativeHumidity)}%`,
+        pct: Math.round(100 * terms[i]),
+        contrib,
+        why: WHYS[i],
+      };
+    });
+  }
   const baseT = d.factors.map((f) =>
     f.kind === "aod" ? Math.max(0, 1 - 2 * f.v) : f.sub === "hi" ? hiT(f.v) : 1 - f.v
   );
@@ -189,13 +224,13 @@ const GridPatch: React.FC = () => {
 };
 
 // ---------- main component ----------
-export const Breakdown: React.FC<BreakdownProps> = ({ mode = "sunset", score, updatedAt = "6:04 pm" }) => {
+export const Breakdown: React.FC<BreakdownProps> = ({ mode = "sunset", score, updatedAt = "6:04 pm", observations, modelScores }) => {
   const d = MODES[mode];
   const effScore = Math.max(1, Math.min(100, Math.round(score ?? d.score)));
-  const factors = computeFactors(mode, effScore);
+  const factors = computeFactors(mode, effScore, observations);
   const mRatio = effScore / d.score;
-  const hrrr = Math.max(1, Math.min(100, Math.round(d.hrrr * mRatio)));
-  const nam = Math.max(1, Math.min(100, Math.round(d.nam * mRatio)));
+  const hrrr = modelScores?.hrrr ?? Math.max(1, Math.min(100, Math.round(d.hrrr * mRatio)));
+  const nam = modelScores?.nam ?? Math.max(1, Math.min(100, Math.round(d.nam * mRatio)));
 
   return (
     <div id="forecast" style={{ position: "relative", padding: "70px 40px 56px", maxWidth: 1080, margin: "0 auto", background: "#140d2e", color: "#f5ecff" }}>
@@ -208,7 +243,7 @@ export const Breakdown: React.FC<BreakdownProps> = ({ mode = "sunset", score, up
           <span data-tip style={{ position: "relative", cursor: "help", borderBottom: `1px dotted ${MUTE}` }}>
             alpha + beta
             <Tip style={{ bottom: "auto", top: 24, width: "auto", whiteSpace: "nowrap", borderRadius: 8, padding: "7px 11px" }}>
-              alpha model = NOAA HRRR · beta model = NOAA NAM 3km
+              two independent short-range forecast models
             </Tip>
           </span>{" "}
           · updated {updatedAt} · next run midnight
@@ -230,7 +265,7 @@ export const Breakdown: React.FC<BreakdownProps> = ({ mode = "sunset", score, up
 
           {/* annotated-equation canvas */}
           <div style={{ overflowX: "auto", overflowY: "hidden", scrollbarWidth: "none" }}>
-            <div style={{ position: "relative", width: 830, height: 440, margin: "6px 0 0" }}>
+            <div style={{ position: "relative", width: 830, height: 470, margin: "6px 0 0" }}>
               <svg viewBox="0 0 830 440" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
                 {LEADERS.map((l) => (
                   <path key={l.color} d={l.d} fill="none" stroke={l.color} strokeWidth={1.4} strokeLinecap="round" strokeDasharray="6 7" opacity={0.45} />
@@ -291,17 +326,17 @@ export const Breakdown: React.FC<BreakdownProps> = ({ mode = "sunset", score, up
           </div>
 
           {/* what the models say */}
-          <div style={{ marginTop: 26 }}>
+          <div style={{ marginTop: 34 }}>
             <Divider />
           </div>
           <div style={{ paddingTop: 16, display: "flex", alignItems: "baseline", justifyContent: "flex-start", gap: "clamp(16px, 3vw, 40px)", flexWrap: "wrap", fontFamily: SERIF, fontSize: 19, color: "#d9c9f2", position: "relative" }}>
             <div data-tip style={{ position: "relative", cursor: "help", whiteSpace: "nowrap" }}>
               <It>S</It><sub style={{ fontSize: ".6em", fontFamily: MATH, fontStyle: "italic" }}>alpha</sub> = <span style={{ color: "#ffd166" }}>{hrrr}</span>
-              <Tip style={{ bottom: 30, width: "auto", whiteSpace: "nowrap", borderRadius: 8, padding: "7px 11px", fontSize: 13 }}>NOAA HRRR, 18z run</Tip>
+              <Tip style={{ bottom: 30, width: "auto", whiteSpace: "nowrap", borderRadius: 8, padding: "7px 11px", fontSize: 13 }}>alpha model forecast</Tip>
             </div>
             <div data-tip style={{ position: "relative", cursor: "help", whiteSpace: "nowrap" }}>
               <It>S</It><sub style={{ fontSize: ".6em", fontFamily: MATH, fontStyle: "italic" }}>beta</sub> = <span style={{ color: "#ffb88c" }}>{nam}</span>
-              <Tip style={{ bottom: 30, width: "auto", whiteSpace: "nowrap", borderRadius: 8, padding: "7px 11px", fontSize: 13 }}>NOAA NAM 3km, 18z run</Tip>
+              <Tip style={{ bottom: 30, width: "auto", whiteSpace: "nowrap", borderRadius: 8, padding: "7px 11px", fontSize: 13 }}>beta model forecast</Tip>
             </div>
             <div>|Δ| = <span style={{ color: "#fff2e2" }}>{Math.abs(hrrr - nam)}</span></div>
             <div style={{ color: MUTE }}>∴ {d.verdict}</div>

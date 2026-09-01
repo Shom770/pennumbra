@@ -6,6 +6,7 @@
    Fonts are loaded globally by the root layout. */
 
 import React, { useState } from 'react';
+import Logo from './Logo';
 
 type Mode = 'sunset' | 'sunrise';
 type Tier = 'BUST' | 'DUD' | 'MEH' | 'GREAT' | 'BANGER';
@@ -14,6 +15,10 @@ interface LandingPageProps {
   /** 1-100; drives the tier word, sky mood, and score ring */
   score?: number;
   defaultMode?: Mode;
+  mode?: Mode;
+  onModeChange?: (mode: Mode) => void;
+  sunriseAt?: string;
+  sunsetAt?: string;
   onBehindRating?: (e: React.MouseEvent) => void;
   onFindSpot?: (e: React.MouseEvent) => void;
 }
@@ -28,6 +33,7 @@ interface SkyMood { g: number; s: number; blaze?: number; }
 const KEYFRAMES = `
 @keyframes pn-drift { from { transform: translateX(-50vw); } to { transform: translateX(115vw); } }
 @keyframes pn-twinkle { 0%,100% { opacity: .9; } 50% { opacity: .1; } }
+@keyframes pn-cityTwinkle { 0%, 100% { opacity: .28; } 38% { opacity: .92; } 55% { opacity: .46; } 72% { opacity: 1; } }
 @keyframes pn-sunBreathe { 0%,100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.06); } }
 `;
 
@@ -114,9 +120,67 @@ function RingBadge({ val, label, ringColor, id, grad }: RingBadgeProps) {
   );
 }
 
-export default function LandingPage({ score: scoreProp = 78, defaultMode = 'sunset', onBehindRating, onFindSpot }: LandingPageProps) {
-  const [mode, setMode] = useState<Mode>(defaultMode);
+export function PennumbraSky({ mode = 'sunset' }: { mode?: Mode }) {
+  return (
+    <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: '#140d2e', pointerEvents: 'none' }}>
+      <style>{KEYFRAMES}</style>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, #1f1a3f 0%, #342857 32%, #663f6e 55%, #b0656b 72%, #dc8e70 85%, #eec295 100%)' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, #121e38 0%, #29406b 34%, #66628e 56%, #c48d97 75%, #e8bb8d 89%, #f2ddad 100%)', opacity: mode === 'sunrise' ? 1 : 0 }} />
+      {STARS.map((st, i) => <div key={i} style={{ position: 'absolute', top: st.top, left: st.left, width: st.s, height: st.s, borderRadius: '50%', background: st.c, animation: `pn-twinkle ${st.dur}s ease-in-out ${st.delay}s infinite` }} />)}
+      <div style={{ position: 'absolute', bottom: '-7vh', left: '50%', width: '34vh', height: '34vh', borderRadius: '50%', background: 'radial-gradient(circle, #fff3d6 0%, #ffd166 34%, rgba(255,158,100,.5) 60%, rgba(255,126,95,0) 72%)', animation: 'pn-sunBreathe 7s ease-in-out infinite', transform: 'translateX(-50%)' }} />
+      <svg width="0" height="0" style={{ position: 'absolute' }}>
+        <defs>
+          <filter id="vp-wisp1" x="-50%" y="-150%" width="200%" height="400%"><feTurbulence type="fractalNoise" baseFrequency="0.011 0.03" numOctaves="4" seed="11" result="n" /><feDisplacementMap in="SourceGraphic" in2="n" scale="120" /><feGaussianBlur stdDeviation="3" /></filter>
+          <filter id="vp-wisp2" x="-50%" y="-150%" width="200%" height="400%"><feTurbulence type="fractalNoise" baseFrequency="0.016 0.045" numOctaves="4" seed="42" result="n" /><feDisplacementMap in="SourceGraphic" in2="n" scale="90" /><feGaussianBlur stdDeviation="4" /></filter>
+          <filter id="vp-wisp3" x="-50%" y="-150%" width="200%" height="400%"><feTurbulence type="fractalNoise" baseFrequency="0.008 0.022" numOctaves="5" seed="7" result="n" /><feDisplacementMap in="SourceGraphic" in2="n" scale="150" /><feGaussianBlur stdDeviation="5" /></filter>
+        </defs>
+      </svg>
+      {CLOUDS.map(([top, w, hgt, dur, delay, ellipses], i) => (
+        <svg key={i} viewBox="0 0 900 260" preserveAspectRatio="none" style={{ position: 'absolute', top, left: 0, width: `${w}vw`, height: `${hgt}vh`, overflow: 'visible', animation: `pn-drift ${dur}s linear ${delay}s infinite` }}>
+          {ellipses.map(([cx, cy, rx, ry, fill, f], j) => <ellipse key={j} cx={cx} cy={cy} rx={rx} ry={ry} fill={fill} filter={`url(#vp-wisp${f})`} />)}
+        </svg>
+      ))}
+      <svg viewBox="0 0 1440 160" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '17vh' }}><path d={SKYLINE_BACK} fill="#251a4e" opacity="0.75" /></svg>
+      <svg viewBox="0 0 1440 160" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '15vh' }}>
+        <path d={SKYLINE_FRONT} fill="#140d2e" />
+        <polygon points="1082,36 1091,16 1100,36" fill="#140d2e" /><rect x="1089" y="6" width="4" height="12" fill="#140d2e" /><rect x="546" y="4" width="4" height="24" fill="#140d2e" /><rect x="436" y="36" width="3" height="18" fill="#140d2e" /><rect x="964" y="0" width="3" height="16" fill="#140d2e" />
+        <g fill="#ffd166" style={{ filter: 'drop-shadow(0 0 2.5px rgba(255,200,110,.85))' }}>{LIGHTS.map(([x, y, o], i) => <rect key={i} x={x} y={y} width="4" height="5" opacity={o} style={{ animation: `pn-cityTwinkle ${4.2 + (i % 7) * .55}s ease-in-out ${-((i * 1.37) % 8)}s infinite` }} />)}</g>
+      </svg>
+    </div>
+  );
+}
+
+export default function LandingPage({ score: scoreProp = 78, defaultMode = 'sunset', mode: controlledMode, onModeChange, sunriseAt, sunsetAt, onBehindRating, onFindSpot }: LandingPageProps) {
+  const [localMode, setLocalMode] = useState<Mode>(defaultMode);
+  const mode = controlledMode ?? localMode;
+  const setMode = (nextMode: Mode) => {
+    setLocalMode(nextMode);
+    onModeChange?.(nextMode);
+  };
   const d = DATA[mode];
+  const formatTime = (value?: string) => value
+    ? new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }).format(new Date(value)).toLowerCase()
+    : undefined;
+  const dateKey = (value: Date | string) => new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'America/New_York',
+  }).format(new Date(value));
+  const sunrise = formatTime(sunriseAt);
+  const sunset = formatTime(sunsetAt);
+  const today = dateKey(new Date());
+  const sunriseDay = sunriseAt ? dateKey(sunriseAt) : undefined;
+  const sunsetDay = sunsetAt ? dateKey(sunsetAt) : undefined;
+  const kicker = (() => {
+    if (!sunriseDay || !sunsetDay) return d.kicker;
+    if (mode === 'sunrise') {
+      return sunriseDay === today ? "today's sunrise" : "tomorrow's sunrise";
+    }
+    if (sunsetDay !== today) return "tomorrow's sunset";
+    return sunriseDay === today ? "today's sunset" : "tonight's sunset";
+  })();
+  const goldenStart = sunsetAt ? formatTime(new Date(new Date(sunsetAt).getTime() - 33 * 60_000).toISOString()) : undefined;
+  const goldenEnd = sunriseAt ? formatTime(new Date(new Date(sunriseAt).getTime() + 33 * 60_000).toISOString()) : undefined;
+  const ring2Val = mode === 'sunset' ? goldenStart ?? d.ring2Val : sunrise ?? d.ring2Val;
+  const ring3Val = mode === 'sunset' ? sunset ?? d.ring3Val : goldenEnd ?? d.ring3Val;
   const score = Math.max(1, Math.min(100, Math.round(scoreProp ?? d.score)));
   const tier = TIERS[Math.min(4, Math.max(0, Math.ceil(score / 20) - 1))];
   const sky = SKY[tier];
@@ -187,18 +251,18 @@ export default function LandingPage({ score: scoreProp = 78, defaultMode = 'suns
         <circle cx="965.5" cy="2" r="2.2" fill="#ff6b6b" opacity="0.85" />
         <circle cx="1091" cy="58" r="4.5" fill="#ffd166" opacity="0.8" />
         <g fill="#ffd166" style={{ filter: 'drop-shadow(0 0 2.5px rgba(255,200,110,.85))' }}>
-          {LIGHTS.map(([x, y, o], i) => <rect key={i} x={x} y={y} width="4" height="5" opacity={o} />)}
+          {LIGHTS.map(([x, y, o], i) => <rect key={i} x={x} y={y} width="4" height="5" opacity={o} style={{ animation: `pn-cityTwinkle ${4.2 + (i % 7) * .55}s ease-in-out ${-((i * 1.37) % 8)}s infinite` }} />)}
         </g>
       </svg>
 
       {/* nav */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '26px 40px', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ fontFamily: "var(--font-bricolage), sans-serif", fontWeight: 800, fontSize: 26, letterSpacing: '-0.5px', color: '#fff2e2', textShadow: '0 1px 12px rgba(60,20,80,.4)' }}>
-          pennumbra<span style={{ color: '#ffd166' }}>.</span>
+        <div style={{ color: '#fff2e2', textShadow: '0 1px 12px rgba(60,20,80,.4)' }}>
+          <Logo />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 26, fontSize: 15, fontWeight: 600 }}>
           <a className="pn-interactive pn-nav-link" href="#forecast" onClick={onBehindRating} style={{ color: '#fff2e2', textDecoration: 'none' }}>the breakdown</a>
-          <a className="pn-interactive pn-nav-link" href="#vantage" onClick={onFindSpot} style={{ color: '#fff2e2', textDecoration: 'none' }}>vantage points</a>
+          <a className="pn-interactive pn-nav-link" href="/vantage" onClick={onFindSpot} style={{ color: '#fff2e2', textDecoration: 'none' }}>vantage points</a>
           <div style={{ display: 'flex', background: 'rgba(20,13,46,.45)', border: '1px solid rgba(255,236,214,.35)', borderRadius: 999, padding: 3, backdropFilter: 'blur(6px)' }}>
             <button className="pn-interactive pn-mode-button" onClick={() => setMode('sunset')} style={pill(mode === 'sunset')}>sunset</button>
             <button className="pn-interactive pn-mode-button" onClick={() => setMode('sunrise')} style={pill(mode === 'sunrise')}>sunrise</button>
@@ -208,7 +272,7 @@ export default function LandingPage({ score: scoreProp = 78, defaultMode = 'suns
 
       {/* hero lockup */}
       <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 24px 12vh' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,242,226,.9)', textShadow: '0 1px 14px rgba(40,15,60,.5)', position: 'relative', zIndex: 1 }}>{d.kicker}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,242,226,.9)', textShadow: '0 1px 14px rgba(40,15,60,.5)', position: 'relative', zIndex: 1 }}>{kicker}</div>
         <div style={{ fontFamily: "var(--font-syne), sans-serif", fontWeight: 700, fontSize: 'clamp(60px, 9vw, 110px)', lineHeight: 1.05, letterSpacing: '-0.03em', textTransform: 'uppercase', color: '#fff6e8', textShadow: '0 6px 44px rgba(90,25,70,.55)', margin: '-6px 0 0' }}>{tier}</div>
         <div style={{ display: 'flex', gap: 22, marginTop: 30, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
           {/* score ring */}
@@ -220,12 +284,12 @@ export default function LandingPage({ score: scoreProp = 78, defaultMode = 'suns
               <div style={{ fontFamily: "var(--font-figtree), sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '1.3px', color: 'rgba(255,242,226,.65)', marginTop: 3 }}>/ 100</div>
             </div>
           </div>
-          <RingBadge val={d.ring2Val} label={d.ring2Label} ringColor="rgba(255,209,102,.85)" id="r2" grad={ringGrad} />
-          <RingBadge val={d.ring3Val} label={d.ring3Label} ringColor="rgba(255,242,226,.75)" id="r3" grad={ringGrad} />
+          <RingBadge val={ring2Val} label={d.ring2Label} ringColor="rgba(255,209,102,.85)" id="r2" grad={ringGrad} />
+          <RingBadge val={ring3Val} label={d.ring3Label} ringColor="rgba(255,242,226,.75)" id="r3" grad={ringGrad} />
         </div>
         <div style={{ display: 'flex', gap: 14, marginTop: 30 }}>
           <a className="pn-interactive pn-button pn-button-secondary" href="#forecast" onClick={onBehindRating} style={{ border: '1.5px solid rgba(255,255,255,.85)', background: 'rgba(255,255,255,.08)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#fff', fontWeight: 700, fontSize: 15, padding: '13px 26px', borderRadius: 999, textDecoration: 'none' }}>behind the rating</a>
-          <a className="pn-interactive pn-button pn-button-primary" href="#vantage" onClick={onFindSpot} style={{ background: 'rgba(255,209,102,.88)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#3a1440', fontWeight: 800, fontSize: 15, padding: '13px 26px', borderRadius: 999, textDecoration: 'none' }}>find a spot →</a>
+          <a className="pn-interactive pn-button pn-button-primary" href="/vantage" onClick={onFindSpot} style={{ background: 'rgba(255,209,102,.88)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#3a1440', fontWeight: 800, fontSize: 15, padding: '13px 26px', borderRadius: 999, textDecoration: 'none' }}>find a spot!</a>
         </div>
       </div>
     </div>

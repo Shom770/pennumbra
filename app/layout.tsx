@@ -29,9 +29,9 @@ const fontVariables = [
 ].join(" ");
 
 export const metadata: Metadata = {
-  title: "Pennumbra — Catch a better sky",
+  title: "Pennumbra",
   description:
-    "A weather-informed sunset and sunrise forecast, with the science behind every rating.",
+    "A weather-informed sunset and sunrise forecast.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
