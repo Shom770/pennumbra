@@ -26,6 +26,7 @@ interface BreakdownProps {
   /** Overrides the mode's base score; factor values rescale to stay consistent. */
   score?: number;
   updatedAt?: string; // e.g. "6:04 pm"
+  modelRunAt?: string;
   observations?: {
     highCloudCover: number;
     lowCloudCover: number;
@@ -224,21 +225,38 @@ const GridPatch: React.FC = () => {
 };
 
 // ---------- main component ----------
-export const Breakdown: React.FC<BreakdownProps> = ({ mode = "sunset", score, updatedAt = "6:04 pm", observations, modelScores }) => {
+export const Breakdown: React.FC<BreakdownProps> = ({ mode = "sunset", score, updatedAt = "6:04 pm", modelRunAt, observations, modelScores }) => {
   const d = MODES[mode];
   const effScore = Math.max(1, Math.min(100, Math.round(score ?? d.score)));
   const factors = computeFactors(mode, effScore, observations);
   const mRatio = effScore / d.score;
   const hrrr = modelScores?.hrrr ?? Math.max(1, Math.min(100, Math.round(d.hrrr * mRatio)));
   const nam = modelScores?.nam ?? Math.max(1, Math.min(100, Math.round(d.nam * mRatio)));
+  const spread = Math.abs(hrrr - nam);
+  const confidence = spread <= 5 ? "high" : spread <= 12 ? "medium" : "low";
+  const runLabel = modelRunAt
+    ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", timeZone: "UTC", timeZoneName: "short" }).format(new Date(modelRunAt)).toLowerCase()
+    : null;
 
   return (
-    <div id="forecast" style={{ position: "relative", padding: "70px 40px 56px", maxWidth: 1080, margin: "0 auto", background: "#140d2e", color: "#f5ecff" }}>
+    <div id="forecast" className="pn-breakdown" style={{ position: "relative", padding: "70px 40px 56px", maxWidth: 1080, margin: "0 auto", background: "#140d2e", color: "#f5ecff" }}>
+      <style>{`
+        .pn-breakdown-mobile { display: none; }
+        @media (max-width: 700px) {
+          .pn-breakdown { padding: 48px 18px 44px !important; }
+          .pn-breakdown-heading { font-size: 30px !important; }
+          .pn-breakdown-meta { font-size: 11px !important; line-height: 1.6; }
+          .pn-breakdown-desktop { display: none; }
+          .pn-breakdown-mobile { display: grid; }
+          .pn-breakdown-models { gap: 12px 20px !important; font-size: 17px !important; }
+          .pn-breakdown-models .om-tip { left: 0 !important; transform: none !important; max-width: calc(100vw - 44px); }
+        }
+      `}</style>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-        <h2 style={{ fontFamily: "var(--font-syne), sans-serif", fontWeight: 700, fontSize: 40, letterSpacing: "-0.02em", textTransform: "uppercase", margin: 0, color: "#fff2e2" }}>
+        <h2 className="pn-breakdown-heading" style={{ fontFamily: "var(--font-syne), sans-serif", fontWeight: 700, fontSize: 40, letterSpacing: "-0.02em", textTransform: "uppercase", margin: 0, color: "#fff2e2" }}>
           the breakdown
         </h2>
-        <div style={{ fontSize: 14, color: MUTE, fontWeight: 600 }}>
+        <div className="pn-breakdown-meta" style={{ fontSize: 14, color: MUTE, fontWeight: 600 }}>
           models{" "}
           <span data-tip style={{ position: "relative", cursor: "help", borderBottom: `1px dotted ${MUTE}` }}>
             alpha + beta
@@ -246,7 +264,7 @@ export const Breakdown: React.FC<BreakdownProps> = ({ mode = "sunset", score, up
               two independent short-range forecast models
             </Tip>
           </span>{" "}
-          · updated {updatedAt} · next run midnight
+          · {runLabel ? `same run ${runLabel}` : `updated ${updatedAt}`}
         </div>
       </div>
 
@@ -264,7 +282,7 @@ export const Breakdown: React.FC<BreakdownProps> = ({ mode = "sunset", score, up
           </div>
 
           {/* annotated-equation canvas */}
-          <div style={{ overflowX: "auto", overflowY: "hidden", scrollbarWidth: "none" }}>
+          <div className="pn-breakdown-desktop" style={{ overflowX: "auto", overflowY: "hidden", scrollbarWidth: "none" }}>
             <div style={{ position: "relative", width: 830, height: 470, margin: "6px 0 0" }}>
               <svg viewBox="0 0 830 440" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
                 {LEADERS.map((l) => (
@@ -325,11 +343,30 @@ export const Breakdown: React.FC<BreakdownProps> = ({ mode = "sunset", score, up
             </div>
           </div>
 
+          <div className="pn-breakdown-mobile mt-6 grid-cols-1 gap-4">
+            <div className="overflow-x-auto pb-2 text-[17px] leading-8 text-[#d9c9f2]" style={{ fontFamily: SERIF }}>
+              <span className="whitespace-nowrap"><It>S</It> = 100 × [ 0.35<It>f</It>(<It>C</It><ItSub>hi</ItSub>) + 0.25(1−<It>C</It><ItSub>lo</ItSub>) + 0.20<It>κ</It> + 0.20(1−<It>H</It>) ]</span>
+            </div>
+            {factors.map((f) => (
+              <article key={f.name} className="relative overflow-hidden border border-white/10 bg-[#211744]/35 p-4">
+                <GridPatch />
+                <div className="relative flex items-end justify-between gap-4">
+                  <div>
+                    <div className="text-[24px] leading-none [font-family:var(--font-caveat)]" style={{ color: f.color }}>{f.name}</div>
+                    <div className="mt-2 text-[28px] font-semibold leading-none text-[#fff2e2] [font-family:var(--font-figtree)]">{f.value}</div>
+                    <div className="mt-2 text-[10px] font-semibold text-[#8f7fb8]">{f.models}</div>
+                  </div>
+                  <div className="shrink-0 text-right text-[20px] [font-family:var(--font-caveat)]" style={{ color: f.color }}>+{f.contrib}/{f.weight}</div>
+                </div>
+              </article>
+            ))}
+          </div>
+
           {/* what the models say */}
           <div style={{ marginTop: 34 }}>
             <Divider />
           </div>
-          <div style={{ paddingTop: 16, display: "flex", alignItems: "baseline", justifyContent: "flex-start", gap: "clamp(16px, 3vw, 40px)", flexWrap: "wrap", fontFamily: SERIF, fontSize: 19, color: "#d9c9f2", position: "relative" }}>
+          <div className="pn-breakdown-models" style={{ paddingTop: 16, display: "flex", alignItems: "baseline", justifyContent: "flex-start", gap: "clamp(16px, 3vw, 40px)", flexWrap: "wrap", fontFamily: SERIF, fontSize: 19, color: "#d9c9f2", position: "relative" }}>
             <div data-tip style={{ position: "relative", cursor: "help", whiteSpace: "nowrap" }}>
               <It>S</It><sub style={{ fontSize: ".6em", fontFamily: MATH, fontStyle: "italic" }}>alpha</sub> = <span style={{ color: "#ffd166" }}>{hrrr}</span>
               <Tip style={{ bottom: 30, width: "auto", whiteSpace: "nowrap", borderRadius: 8, padding: "7px 11px", fontSize: 13 }}>alpha model forecast</Tip>
@@ -338,8 +375,8 @@ export const Breakdown: React.FC<BreakdownProps> = ({ mode = "sunset", score, up
               <It>S</It><sub style={{ fontSize: ".6em", fontFamily: MATH, fontStyle: "italic" }}>beta</sub> = <span style={{ color: "#ffb88c" }}>{nam}</span>
               <Tip style={{ bottom: 30, width: "auto", whiteSpace: "nowrap", borderRadius: 8, padding: "7px 11px", fontSize: 13 }}>beta model forecast</Tip>
             </div>
-            <div>|Δ| = <span style={{ color: "#fff2e2" }}>{Math.abs(hrrr - nam)}</span></div>
-            <div style={{ color: MUTE }}>∴ {d.verdict}</div>
+            <div>|Δ| = <span style={{ color: "#fff2e2" }}>{spread}</span></div>
+            <div style={{ color: MUTE }}>∴ confidence {confidence}</div>
             <div style={{ flexBasis: "100%", fontFamily: "var(--font-figtree), sans-serif", fontSize: 13, color: MUTE, textAlign: "left", marginTop: 2, maxWidth: 520 }}>
               The alpha model and beta model are two independent forecasts. The closer they agree, the more trustworthy the score.
             </div>

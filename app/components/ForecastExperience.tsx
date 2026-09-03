@@ -18,6 +18,7 @@ interface ApiModelMetrics {
 interface ApiForecast {
   mode: Mode;
   fetchedAt: string;
+  modelRunAt: string;
   sunriseAt: string;
   sunsetAt: string;
   combinedScore: number;
@@ -118,6 +119,7 @@ export default function ForecastExperience() {
           mode={mode}
           score={score}
           updatedAt={updatedAt}
+          modelRunAt={activeForecast?.modelRunAt}
           observations={live?.observations}
           modelScores={live?.modelScores}
         />

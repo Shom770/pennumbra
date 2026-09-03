@@ -51,7 +51,7 @@ export default async function VantagePage() {
   const cards: SpotProps[] = [...spots, { ...SUBMISSION_CARD, number: spots.length + 1 }];
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#140d2e] text-[#f5ecff]">
+    <main className="relative min-h-screen overflow-x-hidden bg-[#140d2e] text-[#f5ecff]">
       <style>{`
         .vp-grid-window { scrollbar-color: rgba(255,209,102,.75) rgba(33,23,68,.45); scrollbar-width: thin; }
         .vp-grid-window::-webkit-scrollbar { width: 8px; }
@@ -67,13 +67,13 @@ export default async function VantagePage() {
         <Link href="/" className="pn-interactive pn-nav-link text-sm font-bold text-[#fff2e2] no-underline">← forecast</Link>
       </nav>
 
-      <section className="relative z-10 mx-auto flex max-w-5xl flex-col items-center px-6 pt-[3vh] text-center">
-        <h1 className="m-0 w-full max-w-4xl whitespace-nowrap bg-[radial-gradient(ellipse_at_center,rgba(20,13,46,.2)_0%,rgba(20,13,46,.1)_46%,transparent_76%)] px-4 py-2 text-[clamp(18px,3.2vw,38px)] font-bold uppercase leading-tight tracking-[-0.025em] text-[#fff6e8] backdrop-blur-[2px] [font-family:var(--font-syne)] [text-shadow:0_3px_18px_rgba(20,13,46,.9),0_1px_3px_rgba(20,13,46,.8)]">
+      <section className="relative z-10 mx-auto flex max-w-5xl flex-col items-center px-4 pb-8 pt-2 text-center sm:px-6 sm:pt-[3vh]">
+        <h1 className="m-0 w-full max-w-4xl bg-[radial-gradient(ellipse_at_center,rgba(20,13,46,.2)_0%,rgba(20,13,46,.1)_46%,transparent_76%)] px-2 py-2 text-[clamp(18px,5vw,38px)] font-bold uppercase leading-tight tracking-[-0.025em] text-[#fff6e8] backdrop-blur-[2px] sm:whitespace-nowrap sm:px-4 [font-family:var(--font-syne)] [text-shadow:0_3px_18px_rgba(20,13,46,.9),0_1px_3px_rgba(20,13,46,.8)]">
           where to watch the sunset / sunrise
         </h1>
 
-        <div className="vp-grid-window relative mt-6 h-[55vh] min-h-[360px] max-h-[520px] w-full max-w-5xl overflow-y-auto rounded-2xl pr-2">
-          <div className="grid h-full grid-cols-2 gap-3" style={{ gridAutoRows: "calc((100% - 12px) / 2)" }}>
+        <div className="vp-grid-window relative mt-5 h-[62vh] min-h-[400px] max-h-[620px] w-full max-w-5xl overflow-y-auto rounded-2xl pr-1 sm:mt-6 sm:h-[55vh] sm:min-h-[360px] sm:max-h-[520px] sm:pr-2">
+          <div className="grid grid-cols-1 gap-3 sm:h-full sm:grid-cols-2 sm:[grid-auto-rows:calc((100%-12px)/2)]">
             {cards.map((spot) => <Spot key={spot.number} {...spot} />)}
           </div>
         </div>

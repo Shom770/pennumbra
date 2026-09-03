@@ -15,8 +15,8 @@ function coordinate(value: string | null, fallback: number): number {
 
 export async function GET(request: NextRequest) {
   try {
-    const latitude = coordinate(request.nextUrl.searchParams.get("lat"), 40.7128);
-    const longitude = coordinate(request.nextUrl.searchParams.get("lon"), -74.006);
+    const latitude = coordinate(request.nextUrl.searchParams.get("lat"), 39.95388);
+    const longitude = coordinate(request.nextUrl.searchParams.get("lon"), -75.19304);
     const requestedMode = request.nextUrl.searchParams.get("mode") ?? "sunset";
     if (requestedMode !== "sunset" && requestedMode !== "sunrise") {
       return NextResponse.json(

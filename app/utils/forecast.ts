@@ -31,6 +31,7 @@ interface AirQualityApiResponse {
 
 export interface ModelMetrics {
   model: ForecastModel;
+  runAt: string;
   validAt: string;
   highCloudCover: number;
   lowCloudCover: number;
@@ -43,6 +44,7 @@ export interface ForecastMetrics {
   location: { latitude: number; longitude: number };
   mode: ForecastMode;
   eventAt: string;
+  modelRunAt: string;
   validAt: string;
   sunriseAt: string;
   sunsetAt: string;
@@ -57,7 +59,7 @@ export interface ForecastMetrics {
   };
 }
 
-const WEATHER_API = "https://api.open-meteo.com/v1/gfs";
+const SINGLE_RUNS_API = "https://single-runs-api.open-meteo.com/v1/forecast";
 const AIR_QUALITY_API =
   "https://air-quality-api.open-meteo.com/v1/air-quality";
 
@@ -86,6 +88,31 @@ function nearestCommonTime(left: number[], right: number[], target: number): num
   return common.reduce((best, time) =>
     Math.abs(time - target) < Math.abs(best - target) ? time : best,
   );
+}
+
+function latestLikelyAvailableCommonRun(now = Date.now()): Date {
+  // NAM initializes at 00/06/12/18 UTC. Allow three hours for both regional
+  // models to finish and reach the archive before selecting the shared cycle.
+  const delayed = new Date(now - 3 * 60 * 60 * 1000);
+  delayed.setUTCMinutes(0, 0, 0);
+  delayed.setUTCHours(Math.floor(delayed.getUTCHours() / 6) * 6);
+  return delayed;
+}
+
+function runParameter(run: Date): string {
+  return run.toISOString().slice(0, 16);
+}
+
+function meanAtEvent(series: NumberSeries, times: number[], center: number, name: string): number {
+  const values = times
+    .map((time, index) => ({ time, value: series[index] }))
+    .filter(({ time, value }) => Math.abs(time - center) <= 3600 && typeof value === "number")
+    .map(({ value }) => value as number);
+  if (!values.length) {
+    const index = times.indexOf(center);
+    return finite(series[index], name);
+  }
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function nextEvent(response: WeatherApiResponse, mode: ForecastMode): number {
@@ -132,12 +159,14 @@ function weatherUrl(
   latitude: number,
   longitude: number,
   model: ForecastModel,
+  run: Date,
 ): URL {
-  const url = new URL(WEATHER_API);
+  const url = new URL(SINGLE_RUNS_API);
   url.search = new URLSearchParams({
     latitude: String(latitude),
     longitude: String(longitude),
     models: model,
+    run: runParameter(run),
     hourly: "cloud_cover_high,cloud_cover_low,relative_humidity_2m",
     daily: "sunrise,sunset",
     forecast_days: "3",
@@ -145,6 +174,28 @@ function weatherUrl(
     timezone: "UTC",
   }).toString();
   return url;
+}
+
+async function fetchCommonModelRun(latitude: number, longitude: number) {
+  const models: ForecastModel[] = ["ncep_hrrr_conus", "ncep_nam_conus"];
+  const initialRun = latestLikelyAvailableCommonRun();
+  let lastError: unknown;
+
+  // Publication occasionally trails the usual delay, so walk backward through
+  // common NAM cycles rather than mixing a fresh HRRR run with an older NAM run.
+  for (let offset = 0; offset < 4; offset++) {
+    const run = new Date(initialRun.getTime() - offset * 6 * 60 * 60 * 1000);
+    try {
+      const responses = await Promise.all([
+        fetchJson<WeatherApiResponse>(weatherUrl(latitude, longitude, models[0], run)),
+        fetchJson<WeatherApiResponse>(weatherUrl(latitude, longitude, models[1], run)),
+      ]);
+      return { models, responses, run };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("No common HRRR/NAM run was available.");
 }
 
 function airQualityUrl(latitude: number, longitude: number): URL {
@@ -173,13 +224,11 @@ export async function getLatestForecastMetrics({
     throw new RangeError("Latitude or longitude is outside its valid range.");
   }
 
-  const models: ForecastModel[] = ["ncep_hrrr_conus", "ncep_nam_conus"];
-  const [hrrr, nam, air] = await Promise.all([
-    fetchJson<WeatherApiResponse>(weatherUrl(latitude, longitude, models[0])),
-    fetchJson<WeatherApiResponse>(weatherUrl(latitude, longitude, models[1])),
+  const [{ models, responses: weatherResponses, run }, air] = await Promise.all([
+    fetchCommonModelRun(latitude, longitude),
     fetchJson<AirQualityApiResponse>(airQualityUrl(latitude, longitude)),
   ]);
-  const weatherResponses = [hrrr, nam];
+  const [hrrr, nam] = weatherResponses;
   const sunriseAt = nextEvent(hrrr, "sunrise");
   const sunsetAt = nextEvent(hrrr, "sunset");
   const eventAt = mode === "sunrise" ? sunriseAt : sunsetAt;
@@ -191,22 +240,12 @@ export async function getLatestForecastMetrics({
   );
 
   const metrics = weatherResponses.map((response, modelIndex): ModelMetrics => {
-    const index = response.hourly.time.indexOf(validAt);
-    if (index === -1) throw new Error("A model is missing the agreed forecast hour.");
-    const highCloudCover = finite(
-      response.hourly.cloud_cover_high[index],
-      "high cloud cover",
-    );
-    const lowCloudCover = finite(
-      response.hourly.cloud_cover_low[index],
-      "low cloud cover",
-    );
-    const relativeHumidity = finite(
-      response.hourly.relative_humidity_2m[index],
-      "relative humidity",
-    );
+    const highCloudCover = meanAtEvent(response.hourly.cloud_cover_high, response.hourly.time, validAt, "high cloud cover");
+    const lowCloudCover = meanAtEvent(response.hourly.cloud_cover_low, response.hourly.time, validAt, "low cloud cover");
+    const relativeHumidity = meanAtEvent(response.hourly.relative_humidity_2m, response.hourly.time, validAt, "relative humidity");
     return {
       model: models[modelIndex],
+      runAt: run.toISOString(),
       validAt: new Date(validAt * 1000).toISOString(),
       highCloudCover,
       lowCloudCover,
@@ -217,20 +256,29 @@ export async function getLatestForecastMetrics({
   });
 
   const modelSpread = Math.abs(metrics[0].score - metrics[1].score);
+  const mean = (key: "highCloudCover" | "lowCloudCover" | "relativeHumidity") =>
+    (metrics[0][key] + metrics[1][key]) / 2;
+  const combinedScore = scoreMetrics(
+    mean("highCloudCover"),
+    mean("lowCloudCover"),
+    aod,
+    mean("relativeHumidity"),
+  );
   return {
     location: { latitude, longitude },
     mode,
     eventAt: new Date(eventAt * 1000).toISOString(),
+    modelRunAt: run.toISOString(),
     validAt: new Date(validAt * 1000).toISOString(),
     sunriseAt: new Date(sunriseAt * 1000).toISOString(),
     sunsetAt: new Date(sunsetAt * 1000).toISOString(),
     fetchedAt: new Date().toISOString(),
     models: metrics,
-    combinedScore: Math.round((metrics[0].score + metrics[1].score) / 2),
+    combinedScore,
     modelSpread,
     confidence: modelSpread <= 5 ? "high" : modelSpread <= 12 ? "medium" : "low",
     sources: {
-      weather: "NOAA HRRR CONUS and NAM CONUS 3 km via Open-Meteo",
+      weather: "NOAA HRRR CONUS and NAM CONUS 3 km, synchronized single run via Open-Meteo",
       aerosols: "CAMS global aerosol optical depth via Open-Meteo",
     },
   };

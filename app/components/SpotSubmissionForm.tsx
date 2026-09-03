@@ -151,7 +151,7 @@ export default function SpotSubmissionForm() {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-9">
+    <form onSubmit={submit} className="flex flex-col gap-7 sm:gap-9">
       <section>
         <SectionHead index="01" title="the view" />
         <div
@@ -170,7 +170,7 @@ export default function SpotSubmissionForm() {
           {picture ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element -- local object URL, nothing for the optimizer to do */}
-              <img src={picture.url} alt="" className="h-56 w-full object-cover sm:h-64" />
+              <img src={picture.url} alt="" className="h-48 w-full object-cover sm:h-64" />
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(20,13,46,.92)_0%,rgba(20,13,46,.12)_52%,transparent_100%)]" />
               <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-3 p-4">
                 <span className="min-w-0">
@@ -201,7 +201,7 @@ export default function SpotSubmissionForm() {
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
-              className="group flex h-52 w-full cursor-pointer flex-col items-center justify-center gap-2.5 px-8 text-center sm:h-56"
+              className="group flex h-44 w-full cursor-pointer flex-col items-center justify-center gap-2.5 px-4 text-center sm:h-56 sm:px-8"
             >
               <svg viewBox="0 0 48 32" aria-hidden className="h-10 w-14 text-[#ffd166] transition-transform group-hover:-translate-y-0.5" fill="none">
                 <circle cx="34" cy="9" r="4.5" fill="currentColor" opacity=".85" />
@@ -290,7 +290,7 @@ export default function SpotSubmissionForm() {
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="pn-interactive pn-button pn-button-primary rounded-full bg-[#ffd166] px-7 py-3 text-xs font-extrabold uppercase tracking-[.12em] text-[#3a1440] disabled:cursor-wait disabled:opacity-60"
+          className="pn-interactive pn-button pn-button-primary w-full rounded-full bg-[#ffd166] px-7 py-3 text-xs font-extrabold uppercase tracking-[.12em] text-[#3a1440] disabled:cursor-wait disabled:opacity-60 sm:w-auto"
         >
           {status === "submitting" ? "sending…" : "submit spot →"}
         </button>

@@ -35,6 +35,19 @@ const KEYFRAMES = `
 @keyframes pn-twinkle { 0%,100% { opacity: .9; } 50% { opacity: .1; } }
 @keyframes pn-cityTwinkle { 0%, 100% { opacity: .28; } 38% { opacity: .92; } 55% { opacity: .46; } 72% { opacity: 1; } }
 @keyframes pn-sunBreathe { 0%,100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.06); } }
+.pn-city-mobile { display: none; }
+@media (max-width: 680px) {
+  .pn-city-desktop { display: none !important; }
+  .pn-city-mobile { display: block !important; }
+  .pn-hero-nav { padding: 20px 18px !important; align-items: flex-start !important; }
+  .pn-hero-links { width: 100%; gap: 12px !important; justify-content: space-between; font-size: 12px !important; }
+  .pn-hero-links > a { display: none; }
+  .pn-hero-main { justify-content: flex-start !important; padding: 11vh 16px 18vh !important; }
+  .pn-hero-kicker { font-size: 12px !important; letter-spacing: 2px !important; }
+  .pn-hero-rings { gap: 4px !important; margin-top: 22px !important; flex-wrap: nowrap !important; transform: scale(.83); transform-origin: center top; }
+  .pn-hero-actions { width: 100%; justify-content: center; gap: 8px !important; margin-top: 4px !important; }
+  .pn-hero-actions a { padding: 11px 15px !important; font-size: 12px !important; }
+}
 `;
 
 const STARS: Star[] = [
@@ -81,6 +94,35 @@ const LIGHTS: Light[] = [
 const SKYLINE_BACK = 'M0,160 L0,110 L50,110 L58,102 L96,102 L104,110 L150,110 L150,88 L160,80 L200,80 L210,88 L210,110 L280,110 L280,72 L296,58 L312,72 L312,110 L360,110 L360,96 L430,96 L430,110 L490,110 L490,64 L500,64 L500,54 L540,54 L540,110 L610,110 L610,90 L618,82 L680,82 L688,90 L688,110 L760,110 L760,50 L800,38 L800,110 L860,110 L860,98 L930,98 L930,110 L990,110 L990,68 L1000,60 L1040,60 L1050,68 L1050,110 L1120,110 L1120,92 L1190,92 L1190,110 L1250,110 L1250,76 L1266,62 L1282,76 L1282,110 L1350,110 L1358,102 L1400,102 L1408,110 L1440,110 L1440,160 Z';
 
 const SKYLINE_FRONT = 'M0,160 L0,126 L28,126 L28,116 L34,112 L40,116 L40,126 L96,126 L96,98 L128,74 L160,90 L160,126 L214,126 L214,72 L224,72 L224,60 L262,60 L262,72 L272,72 L272,126 L330,126 L330,72 L338,66 L372,66 L380,72 L380,126 L418,126 L418,68 L438,42 L458,68 L458,126 L512,126 L512,70 L524,70 L524,54 L548,26 L572,54 L572,70 L584,70 L584,126 L642,126 L642,80 L668,80 L668,68 L676,68 L676,80 L692,80 L692,126 L724,126 L724,34 L730,30 L788,30 L794,34 L794,126 L846,126 L846,52 L852,46 L892,46 L900,52 L900,126 L930,126 L930,24 L938,16 L996,16 L1004,24 L1004,126 L1058,126 L1058,96 L1076,96 L1076,44 L1082,44 L1082,36 L1100,36 L1100,44 L1106,44 L1106,96 L1122,96 L1122,126 L1176,126 L1176,66 L1236,50 L1236,126 L1288,126 L1288,66 L1330,66 L1336,72 L1336,126 L1372,126 L1372,116 L1380,112 L1388,116 L1388,126 L1440,126 L1440,160 Z';
+const MOBILE_SKYLINE_BACK = 'M0,160V112H38V94H82V112H118V78H154V112H196V88H246V112H282V68H326V112H390V160Z';
+const MOBILE_SKYLINE_FRONT = 'M0,160V130H28V106L54,88L80,106V130H106V76H116V62H146V76H156V130H184V98H224V130H244V64H252V45H286V64H294V130H320V92H366V130H390V160Z';
+const MOBILE_LIGHTS: Light[] = [[121,82,.65],[137,82,.35],[121,98,.3],[137,98,.8],[258,66,.75],[274,66,.35],[258,84,.4],[274,84,.7],[258,102,.6],[274,102,.3],[332,105,.65],[348,105,.35]];
+
+function CitySkyline() {
+  const lights = (items: Light[]) => items.map(([x, y, o], i) => (
+    <rect key={i} x={x} y={y} width="4" height="5" opacity={o} style={{ animation: `pn-cityTwinkle ${4.2 + (i % 7) * .55}s ease-in-out ${-((i * 1.37) % 8)}s infinite` }} />
+  ));
+  return (
+    <>
+      <div className="pn-city-desktop">
+        <svg viewBox="0 0 1440 160" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '17vh' }}><path d={SKYLINE_BACK} fill="#251a4e" opacity="0.75" /></svg>
+        <svg viewBox="0 0 1440 160" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '15vh' }}>
+          <path d={SKYLINE_FRONT} fill="#140d2e" />
+          <polygon points="1082,36 1091,16 1100,36" fill="#140d2e" /><rect x="1089" y="6" width="4" height="12" fill="#140d2e" /><rect x="546" y="4" width="4" height="24" fill="#140d2e" /><rect x="436" y="36" width="3" height="18" fill="#140d2e" /><rect x="964" y="0" width="3" height="16" fill="#140d2e" />
+          <g fill="#ffd166" style={{ filter: 'drop-shadow(0 0 2.5px rgba(255,200,110,.85))' }}>{lights(LIGHTS)}</g>
+        </svg>
+      </div>
+      <div className="pn-city-mobile">
+        <svg viewBox="0 0 390 160" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '18vh' }}><path d={MOBILE_SKYLINE_BACK} fill="#251a4e" opacity="0.72" /></svg>
+        <svg viewBox="0 0 390 160" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '16vh' }}>
+          <path d={MOBILE_SKYLINE_FRONT} fill="#140d2e" />
+          <rect x="267" y="27" width="3" height="20" fill="#140d2e" />
+          <g fill="#ffd166" style={{ filter: 'drop-shadow(0 0 2.5px rgba(255,200,110,.8))' }}>{lights(MOBILE_LIGHTS)}</g>
+        </svg>
+      </div>
+    </>
+  );
+}
 
 const DATA: Record<Mode, ModeData> = {
   sunset: {
@@ -140,12 +182,7 @@ export function PennumbraSky({ mode = 'sunset' }: { mode?: Mode }) {
           {ellipses.map(([cx, cy, rx, ry, fill, f], j) => <ellipse key={j} cx={cx} cy={cy} rx={rx} ry={ry} fill={fill} filter={`url(#vp-wisp${f})`} />)}
         </svg>
       ))}
-      <svg viewBox="0 0 1440 160" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '17vh' }}><path d={SKYLINE_BACK} fill="#251a4e" opacity="0.75" /></svg>
-      <svg viewBox="0 0 1440 160" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '15vh' }}>
-        <path d={SKYLINE_FRONT} fill="#140d2e" />
-        <polygon points="1082,36 1091,16 1100,36" fill="#140d2e" /><rect x="1089" y="6" width="4" height="12" fill="#140d2e" /><rect x="546" y="4" width="4" height="24" fill="#140d2e" /><rect x="436" y="36" width="3" height="18" fill="#140d2e" /><rect x="964" y="0" width="3" height="16" fill="#140d2e" />
-        <g fill="#ffd166" style={{ filter: 'drop-shadow(0 0 2.5px rgba(255,200,110,.85))' }}>{LIGHTS.map(([x, y, o], i) => <rect key={i} x={x} y={y} width="4" height="5" opacity={o} style={{ animation: `pn-cityTwinkle ${4.2 + (i % 7) * .55}s ease-in-out ${-((i * 1.37) % 8)}s infinite` }} />)}</g>
-      </svg>
+      <CitySkyline />
     </div>
   );
 }
@@ -235,32 +272,15 @@ export default function LandingPage({ score: scoreProp = 78, defaultMode = 'suns
       ))}
       {/* overcast gloom (tier-driven) */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, #1c1830 0%, #2c2740 45%, #4c4456 75%, #6f6168 100%)', opacity: sky.g, transition: 'opacity 1.6s ease' }} />
-      {/* skyline */}
-      <svg viewBox="0 0 1440 160" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '17vh', display: 'block' }}>
-        <path d={SKYLINE_BACK} fill="#251a4e" opacity="0.75" />
-        <rect x="518" y="34" width="3" height="20" fill="#251a4e" opacity="0.75" />
-        <rect x="1018" y="42" width="3" height="18" fill="#251a4e" opacity="0.75" />
-      </svg>
-      <svg viewBox="0 0 1440 160" preserveAspectRatio="none" style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '15vh', display: 'block' }}>
-        <path d={SKYLINE_FRONT} fill="#140d2e" />
-        <polygon points="1082,36 1091,16 1100,36" fill="#140d2e" />
-        <rect x="1089" y="6" width="4" height="12" fill="#140d2e" />
-        <rect x="546" y="4" width="4" height="24" fill="#140d2e" />
-        <rect x="436" y="36" width="3" height="18" fill="#140d2e" />
-        <rect x="964" y="0" width="3" height="16" fill="#140d2e" />
-        <circle cx="965.5" cy="2" r="2.2" fill="#ff6b6b" opacity="0.85" />
-        <circle cx="1091" cy="58" r="4.5" fill="#ffd166" opacity="0.8" />
-        <g fill="#ffd166" style={{ filter: 'drop-shadow(0 0 2.5px rgba(255,200,110,.85))' }}>
-          {LIGHTS.map(([x, y, o], i) => <rect key={i} x={x} y={y} width="4" height="5" opacity={o} style={{ animation: `pn-cityTwinkle ${4.2 + (i % 7) * .55}s ease-in-out ${-((i * 1.37) % 8)}s infinite` }} />)}
-        </g>
-      </svg>
+      {/* responsive skyline */}
+      <CitySkyline />
 
       {/* nav */}
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '26px 40px', gap: 16, flexWrap: 'wrap' }}>
+      <div className="pn-hero-nav" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '26px 40px', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ color: '#fff2e2', textShadow: '0 1px 12px rgba(60,20,80,.4)' }}>
           <Logo />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 26, fontSize: 15, fontWeight: 600 }}>
+        <div className="pn-hero-links" style={{ display: 'flex', alignItems: 'center', gap: 26, fontSize: 15, fontWeight: 600 }}>
           <a className="pn-interactive pn-nav-link" href="#forecast" onClick={onBehindRating} style={{ color: '#fff2e2', textDecoration: 'none' }}>the breakdown</a>
           <a className="pn-interactive pn-nav-link" href="/vantage" onClick={onFindSpot} style={{ color: '#fff2e2', textDecoration: 'none' }}>vantage points</a>
           <div style={{ display: 'flex', background: 'rgba(20,13,46,.45)', border: '1px solid rgba(255,236,214,.35)', borderRadius: 999, padding: 3, backdropFilter: 'blur(6px)' }}>
@@ -271,10 +291,10 @@ export default function LandingPage({ score: scoreProp = 78, defaultMode = 'suns
       </div>
 
       {/* hero lockup */}
-      <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 24px 12vh' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,242,226,.9)', textShadow: '0 1px 14px rgba(40,15,60,.5)', position: 'relative', zIndex: 1 }}>{kicker}</div>
+      <div className="pn-hero-main" style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 24px 12vh' }}>
+        <div className="pn-hero-kicker" style={{ fontSize: 16, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,242,226,.9)', textShadow: '0 1px 14px rgba(40,15,60,.5)', position: 'relative', zIndex: 1 }}>{kicker}</div>
         <div style={{ fontFamily: "var(--font-syne), sans-serif", fontWeight: 700, fontSize: 'clamp(60px, 9vw, 110px)', lineHeight: 1.05, letterSpacing: '-0.03em', textTransform: 'uppercase', color: '#fff6e8', textShadow: '0 6px 44px rgba(90,25,70,.55)', margin: '-6px 0 0' }}>{tier}</div>
-        <div style={{ display: 'flex', gap: 22, marginTop: 30, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+        <div className="pn-hero-rings" style={{ display: 'flex', gap: 22, marginTop: 30, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
           {/* score ring */}
           <div style={{ position: 'relative', width: 118, height: 118 }}>
             <div style={{ position: 'absolute', inset: 7, borderRadius: '50%', background: ringGrad, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
@@ -287,7 +307,7 @@ export default function LandingPage({ score: scoreProp = 78, defaultMode = 'suns
           <RingBadge val={ring2Val} label={d.ring2Label} ringColor="rgba(255,209,102,.85)" id="r2" grad={ringGrad} />
           <RingBadge val={ring3Val} label={d.ring3Label} ringColor="rgba(255,242,226,.75)" id="r3" grad={ringGrad} />
         </div>
-        <div style={{ display: 'flex', gap: 14, marginTop: 30 }}>
+        <div className="pn-hero-actions" style={{ display: 'flex', gap: 14, marginTop: 30 }}>
           <a className="pn-interactive pn-button pn-button-secondary" href="#forecast" onClick={onBehindRating} style={{ border: '1.5px solid rgba(255,255,255,.85)', background: 'rgba(255,255,255,.08)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#fff', fontWeight: 700, fontSize: 15, padding: '13px 26px', borderRadius: 999, textDecoration: 'none' }}>behind the rating</a>
           <a className="pn-interactive pn-button pn-button-primary" href="/vantage" onClick={onFindSpot} style={{ background: 'rgba(255,209,102,.88)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#3a1440', fontWeight: 800, fontSize: 15, padding: '13px 26px', borderRadius: 999, textDecoration: 'none' }}>find a spot!</a>
         </div>
