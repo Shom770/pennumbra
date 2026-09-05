@@ -1,5 +1,5 @@
 # pennumbra
-#### Try it [here](https://pennumbra.vercel.app)!
+#### Try it [here](https://pennumbra.vercel.app) (pennumbra.vercel.app)!
 
 ---
 <img width="1512" height="825" alt="Screenshot 2026-09-05 at 7 28 25 AM" src="https://github.com/user-attachments/assets/ac48dd57-de69-4a58-9d6f-085bbcb27510" />
