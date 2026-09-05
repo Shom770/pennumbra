@@ -1,5 +1,7 @@
 # pennumbra
 
+Try it [here](https://pennumbra.vercel.app)!
+
 A sunset and sunrise forecast for Penn Students, plus a few vantage points on & near Penn Campus, sourced by Penn students, to watch dusk/dawn from!
 
 The app uses raw atmospheric data (the HRRR & NAM 3K numeric weather models) to generate a 1-100 score of the sunrise or sunset over campus. As someone who's a HUGE fan of sunrises/sunsets & also someone who's into meteorology, I'll always look up in the sky and come up with my own "best guess" of how good the sunrise/sunset will be - but now, with pennumbra, the open-sourced formula (that I'll keep adjusting, of course, and eventually build a simple neural network for) weighs every atmospheric factor accordingly.
